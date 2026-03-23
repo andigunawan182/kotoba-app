@@ -11,7 +11,7 @@ export default function App() {
   // Load Excel filer
 
   useEffect(() => {
-    fetch("/kotoba-app/public/kotoba.xlsx")
+    fetch(`${import.meta.env.BASE_URL}kotoba.xlsx`)
       .then((res) => {
         if (!res.ok) throw new Error("File Excel tidak ditemukan");
         return res.arrayBuffer();
