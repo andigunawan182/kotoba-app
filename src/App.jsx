@@ -8,26 +8,23 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load Excel filer
-
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}kotoba.xlsx`)
       .then((res) => {
-        if (!res.ok) throw new Error("File Excel tidak ditemukan");
         return res.arrayBuffer();
       })
       .then((ab) => {
         const workbook = XLSX.read(ab, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-        if (!sheetName) throw new Error("Sheet tidak ditemukan di file Excel");
-
-        const sheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(sheet);
-
-        if (!json || json.length === 0) {
-          throw new Error("Data Excel kosong atau format salah");
-        }
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: "" }).map(item => ({
+                  kotoba: item.kotoba || item.Kotoba || "",
+                  romaji: item.romaji || item.Romaji || "",
+                  arti: item.arti || item.Arti || "",
+                  keterangan: item.keterangan || item.Keterangan || "",
+                  kamus: item.kamus || item.Kamus || "",   // Tambahkan baris ini
+                  perubahan: item.perubahan || item.Perubahan || "", // Tambahkan baris ini
+                }));
 
         setData(json);
         setLoading(false);
@@ -53,7 +50,11 @@ export default function App() {
     }
   };
 
-  // Loading state
+  const handleSliderChange = (e) => {
+    setIndex(Number(e.target.value));
+    setFlipped(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -62,7 +63,6 @@ export default function App() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen text-red-500">
@@ -71,7 +71,6 @@ export default function App() {
     );
   }
 
-  // Safety check (fix error undefined[0])
   if (!data || data.length === 0 || !data[index]) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -83,10 +82,10 @@ export default function App() {
   const current = data[index] || {};
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center bg-gray-100">
+    <div className="h-screen flex flex-col items-center justify-center bg-gray-100 px-4">
       {/* Card */}
       <div
-        className="w-80 h-52 perspective cursor-pointer"
+        className="w-[320px] h-[240px] perspective cursor-pointer"
         onClick={() => setFlipped((prev) => !prev)}
       >
         <div
@@ -94,9 +93,16 @@ export default function App() {
             flipped ? "rotate-y-180" : ""
           }`}
         >
-          {/* Front */}
+          {/* Front Card */}
           <div className="absolute w-full h-full backface-hidden bg-white rounded-2xl shadow-lg flex flex-col items-center justify-center">
-            <h1 className="text-2xl font-bold">
+            <div className="absolute top-4 left-4 text-xs text-gray-300">
+              {current.kamus || "-"}
+            </div>
+            <div className="absolute bottom-4 left-4 text-xs text-gray-300">
+              {current.perubahan || "-"}
+            </div>
+            
+            <h1 className="text-2xl font-normal text-center">
               {current.kotoba || "-"}
             </h1>
             <p className="text-gray-500 mt-2">
@@ -104,11 +110,17 @@ export default function App() {
             </p>
           </div>
 
-          {/* Back */}
-          <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-blue-500 text-white rounded-2xl shadow-lg flex items-center justify-center">
-            <h1 className="text-xl font-semibold">
-              {current.arti || "-"}
-            </h1>
+          {/* Back Card */}
+          <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-blue-500 text-white rounded-2xl shadow-lg relative">
+            <div className="absolute top-4 right-4 text-xs font-normal">
+              {current.keterangan || "-"}
+            </div>
+            
+            <div className="flex items-center justify-center h-full">
+              <h1 className="text-xl font-semibold text-center">
+                {current.arti || "-"}
+              </h1>
+            </div>
           </div>
         </div>
       </div>
@@ -129,6 +141,21 @@ export default function App() {
         >
           Selanjutnya
         </button>
+      </div>
+
+      {/* Slider */}
+      <div className="mt-6 w-full max-w-md">
+        <input
+          type="range"
+          min="0"
+          max={data.length - 1}
+          value={index}
+          onChange={handleSliderChange}
+          className="w-full"
+        />
+        <div className="text-center text-sm text-gray-600 mt-2">
+          Loncat ke: {index + 1}
+        </div>
       </div>
 
       {/* Progress */}
